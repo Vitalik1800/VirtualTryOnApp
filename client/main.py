@@ -1,5 +1,7 @@
 import customtkinter as ctk
 
+from client.ui.main_window import MainWindow
+
 
 class VirtualTryOnApp(ctk.CTk):
     def __init__(self) -> None:
@@ -8,12 +10,11 @@ class VirtualTryOnApp(ctk.CTk):
         self.title("Virtual Try-On")
         self.geometry("1200x720")
 
-        self.label = ctk.CTkLabel(
-            self,
-            text="Virtual Try-On"
+        self.main_window = MainWindow(
+            self
         )
 
-        self.label.pack(
-            padx=20,
-            pady=20
+        self.main_window.pack(
+            fill="both",
+            expand=True
         )
