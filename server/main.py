@@ -1,11 +1,24 @@
 from fastapi import FastAPI
 
+from server.database.base import Base
+from server.database.connection import engine
+from server.models.accessory import Accessory
+from server.api.accessories import router as accessories_router
+
 
 app = FastAPI(
     title="Virtual Try-On API",
     version="1.0"
 )
 
+Base.metadata.create_all(
+    bind=engine
+)
+
+
+app.include_router(
+    accessories_router
+)
 
 @app.get("/")
 def root() -> dict[str, str]:
