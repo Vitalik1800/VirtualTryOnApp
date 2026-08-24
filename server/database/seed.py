@@ -1,61 +1,71 @@
+from pathlib import Path
+
 from sqlalchemy import select
 
-from server.database.connection import SessionLocal
+from server.database.base import Base
+from server.database.connection import SessionLocal, engine
 from server.models.accessory import Accessory
 
 
-INITIAL_ACCESSORIES = [
-    {
-        "name": "Classic Glasses",
-        "category": "Glasses",
-        "file_path": "assets/accessories/glasses/glasses_01.png"
-    },
-    {
-        "name": "Modern Glasses",
-        "category": "Glasses",
-        "file_path": "assets/accessories/glasses/glasses_02.png"
-    },
-    {
-        "name": "Classic Hat",
-        "category": "Hats",
-        "file_path": "assets/accessories/hats/hat_01.png"
-    },
-    {
-        "name": "Modern Hat",
-        "category": "Hats",
-        "file_path": "assets/accessories/hats/hat_02.png"
-    },
-    {
-        "name": "Classic Mask",
-        "category": "Masks",
-        "file_path": "assets/accessories/masks/mask_01.png"
-    },
-    {
-        "name": "Modern Mask",
-        "category": "Masks",
-        "file_path": "assets/accessories/masks/mask_02.png"
-    }
-]
-
-
 def seed_accessories() -> None:
-    """Add initial accessories to the database."""
+    """Populate the accessories table."""
+
+    Base.metadata.create_all(
+        bind=engine
+    )
+
+    project_root = Path(__file__).resolve().parents[2]
+
+    accessories_directory = (
+        project_root
+        / "assets"
+        / "accessories"
+    )
+
+    categories = {
+        "Glasses": "glasses",
+        "Hats": "hats",
+        "Masks": "masks"
+    }
 
     db = SessionLocal()
 
     try:
-        for data in INITIAL_ACCESSORIES:
-            statement = select(Accessory).where(
-                Accessory.name == data["name"]
+        for category, directory_name in categories.items():
+            directory = (
+                accessories_directory
+                / directory_name
             )
 
-            existing_accessory = db.scalar(statement)
+            if not directory.exists():
+                print(
+                    f"Directory not found: {directory}"
+                )
+                continue
 
-            if existing_accessory is None:
+            for file_path in sorted(
+                directory.glob("*.png")
+            ):
+                name = file_path.stem
+
+                existing = db.scalar(
+                    select(Accessory).where(
+                        Accessory.name == name,
+                        Accessory.category == category
+                    )
+                )
+
+                if existing is not None:
+                    continue
+
                 accessory = Accessory(
-                    name=data["name"],
-                    category=data["category"],
-                    file_path=data["file_path"],
+                    name=name,
+                    category=category,
+                    file_path=str(
+                        file_path.relative_to(
+                            project_root
+                        )
+                    ),
                     is_active=True
                 )
 
@@ -63,10 +73,13 @@ def seed_accessories() -> None:
 
         db.commit()
 
+        print(
+            "Accessories seeded successfully."
+        )
+
     finally:
         db.close()
 
 
 if __name__ == "__main__":
     seed_accessories()
-    print("Initial accessories added successfully.")

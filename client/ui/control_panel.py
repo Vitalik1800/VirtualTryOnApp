@@ -9,7 +9,8 @@ class ControlPanel(ctk.CTkFrame):
         master,
         on_start_camera=None,
         on_stop_camera=None,
-        on_accessory_selected=None
+        on_accessory_selected=None,
+        on_save_try_on=None
     ) -> None:
         super().__init__(master)
 
@@ -18,6 +19,7 @@ class ControlPanel(ctk.CTkFrame):
         self.on_start_camera = on_start_camera
         self.on_stop_camera = on_stop_camera
         self.on_accessory_selected = on_accessory_selected
+        self.on_save_try_on = on_save_try_on
 
         self._create_widgets()
 
@@ -115,6 +117,17 @@ class ControlPanel(ctk.CTkFrame):
         self.additional_label.pack(
             padx=20,
             pady=(30, 10)
+        )
+
+        self.save_try_on_button = ctk.CTkButton(
+            self,
+            text="Save Try-On",
+            command=self.on_save_try_on
+        )
+
+        self.save_try_on_button.pack(
+            padx=10,
+            pady=10
         )
 
         self.capture_button = ctk.CTkButton(

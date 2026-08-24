@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import numpy as np
 
 
 class FaceDetector:
@@ -148,35 +149,22 @@ class FaceDetector:
         self,
         frame,
         key_landmarks: dict[str, tuple[int, int]]
-    ):
+    ) -> np.ndarray:
         """Draw selected facial landmarks on a frame."""
 
         if frame is None:
             return None
 
-        result = frame.copy()
-
-        for name, (x, y) in key_landmarks.items():
+        for _, (x, y) in key_landmarks.items():
             cv2.circle(
-                result,
+                frame,
                 (x, y),
                 5,
                 (0, 255, 0),
                 -1
             )
 
-            cv2.putText(
-                result,
-                name,
-                (x + 8, y - 8),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (0, 255, 0),
-                1,
-                cv2.LINE_AA
-            )
-
-        return result
+        return frame
 
     def close(self) -> None:
         """Release MediaPipe resources."""

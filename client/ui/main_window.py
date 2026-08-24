@@ -1,10 +1,14 @@
 import customtkinter as ctk
+import requests
 
+from client.accessories.accessory_manager import AccessoryManager
+from client.accessories.accessory_renderer import AccessoryRenderer
 from client.camera.camera_manager import CameraManager
 from client.ui.control_panel import ControlPanel
 from client.ui.status_panel import StatusPanel
 from client.ui.video_preview import VideoPreview
 from client.vision.face_detector import FaceDetector
+from client.api.try_on_api import TryOnApi
 
 
 class MainWindow(ctk.CTkFrame):
@@ -15,6 +19,28 @@ class MainWindow(ctk.CTkFrame):
 
         self.camera_manager = CameraManager()
         self.face_detector = FaceDetector()
+
+        self.accessory_manager = AccessoryManager()
+        self.accessory_renderer = AccessoryRenderer()
+        self.try_on_api = TryOnApi()
+
+        self.current_try_on_position = None
+
+        self.accessory_manager.load_accessories()
+
+        self.accessory_manager.load_database_ids()
+
+        print(
+            "Loaded accessories:",
+            len(self.accessory_manager.accessories)
+        )
+
+        print(
+            "Selected accessory:",
+            self.accessory_manager
+            .get_selected_accessory()
+            .name
+        )
 
         self.camera_update_id = None
         self.camera_read_errors = 0
@@ -58,7 +84,8 @@ class MainWindow(ctk.CTkFrame):
             self,
             on_start_camera=self._on_start_camera,
             on_stop_camera=self._on_stop_camera,
-            on_accessory_selected=self._on_accessory_selected
+            on_accessory_selected=self._on_accessory_selected,
+            on_save_try_on=self._save_try_on
         )
 
         self.control_panel.grid(
@@ -83,7 +110,7 @@ class MainWindow(ctk.CTkFrame):
         )
 
     def update_camera_frame(self) -> None:
-        """Read and display the next camera frame."""
+        """Read, process and display the next camera frame."""
 
         if not self.camera_manager.is_opened():
             self.camera_update_id = None
@@ -108,16 +135,45 @@ class MainWindow(ctk.CTkFrame):
             )
 
             if landmarks is not None:
-                key_landmarks = self.face_detector.get_key_landmarks(
-                    landmarks,
-                    frame.shape[1],
-                    frame.shape[0]
+                key_landmarks = (
+                    self.face_detector.get_key_landmarks(
+                        landmarks,
+                        frame.shape[1],
+                        frame.shape[0]
+                    )
                 )
 
                 frame = self.face_detector.draw_key_landmarks(
                     frame,
                     key_landmarks
                 )
+
+                active_accessory = (
+                    self.accessory_manager
+                    .get_selected_accessory()
+                )
+
+                if active_accessory is not None:
+                    position = (
+                        self.accessory_manager
+                        .calculate_position(
+                            key_landmarks
+                        )
+                    )
+
+                    if position is not None:
+                        self.current_try_on_position = position
+
+                        frame = (
+                            self.accessory_renderer.render(
+                                frame=frame,
+                                accessory_image=active_accessory.image,
+                                center_x=position["center_x"],
+                                center_y=position["center_y"],
+                                width=position["width"],
+                                angle=position["angle"]
+                            )
+                        )
 
                 self.status_panel.set_status(
                     "Face detected"
@@ -199,14 +255,32 @@ class MainWindow(ctk.CTkFrame):
         )
 
     def _on_accessory_selected(
-            self,
-            category: str
+        self,
+        category: str
     ) -> None:
-        """Handle accessory category selection."""
+        """Select the next accessory from the category."""
 
-        self.status_panel.set_status(
-            "Ready"
+        selected = (
+            self.accessory_manager
+            .select_next_by_category(
+                category
+            )
         )
+
+        if selected:
+            active_accessory = (
+                self.accessory_manager
+                .get_selected_accessory()
+            )
+
+            self.status_panel.set_status(
+                f"{category}: {active_accessory.name}"
+            )
+
+        else:
+            self.status_panel.set_status(
+                f"No {category} accessories"
+            )
 
         self.status_panel.set_accessory(
             category
@@ -238,6 +312,52 @@ class MainWindow(ctk.CTkFrame):
         self.status_panel.set_accessory(
             self.control_panel.selected_category
         )
+
+    def _save_try_on(self) -> None:
+        """Save the current virtual try-on."""
+
+        accessory = (
+            self.accessory_manager
+            .get_selected_accessory()
+        )
+
+        if accessory is None:
+            self.status_panel.set_status(
+                "No accessory selected"
+            )
+            return
+
+        if accessory.id is None:
+            self.status_panel.set_status(
+                "Accessory ID is missing"
+            )
+            return
+
+        if self.current_try_on_position is None:
+            self.status_panel.set_status(
+                "No active try-on"
+            )
+            return
+
+        position = self.current_try_on_position
+
+        try:
+            result = self.try_on_api.save_try_on(
+                accessory_id=accessory.id,
+                center_x=position["center_x"],
+                center_y=position["center_y"],
+                width=position["width"],
+                angle=position["angle"]
+            )
+
+            self.status_panel.set_status(
+                f"Try-on saved: #{result['id']}"
+            )
+
+        except requests.RequestException:
+            self.status_panel.set_status(
+                "Failed to save try-on"
+            )
 
     def destroy(self):
         """Release application resources."""

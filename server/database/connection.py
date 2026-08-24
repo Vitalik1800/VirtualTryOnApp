@@ -1,7 +1,19 @@
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "sqlite:///./virtual_try_on.db"
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DATABASE_PATH = (
+    PROJECT_ROOT
+    / "virtual_try_on.db"
+)
+
+DATABASE_URL = (
+    f"sqlite:///{DATABASE_PATH}"
+)
 
 engine = create_engine(
     DATABASE_URL,
