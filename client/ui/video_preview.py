@@ -7,8 +7,17 @@ class VideoPreview(ctk.CTkFrame):
     def __init__(self, master) -> None:
         super().__init__(master)
 
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(
+            0,
+            weight=1
+        )
+
+        self.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        self.photo = None
 
         self._create_widgets()
 
@@ -43,8 +52,19 @@ class VideoPreview(ctk.CTkFrame):
     def show_frame(self, image) -> None:
         """Display a processed video frame."""
 
+        if image is None:
+            return
+
+        photo = ctk.CTkImage(
+            light_image=image,
+            dark_image=image,
+            size=image.size
+        )
+
+        self.photo = photo
+
         self.video_label.configure(
-            image=image,
+            image=self.photo,
             text=""
         )
 
