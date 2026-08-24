@@ -4,6 +4,7 @@ from client.camera.camera_manager import CameraManager
 from client.ui.control_panel import ControlPanel
 from client.ui.status_panel import StatusPanel
 from client.ui.video_preview import VideoPreview
+from client.vision.face_detector import FaceDetector
 
 
 class MainWindow(ctk.CTkFrame):
@@ -13,6 +14,8 @@ class MainWindow(ctk.CTkFrame):
         super().__init__(master)
 
         self.camera_manager = CameraManager()
+        self.face_detector = FaceDetector()
+
         self.camera_update_id = None
         self.camera_read_errors = 0
 
@@ -99,6 +102,31 @@ class MainWindow(ctk.CTkFrame):
 
         else:
             self.camera_read_errors = 0
+
+            landmarks = self.face_detector.get_landmarks(
+                frame
+            )
+
+            if landmarks is not None:
+                key_landmarks = self.face_detector.get_key_landmarks(
+                    landmarks,
+                    frame.shape[1],
+                    frame.shape[0]
+                )
+
+                frame = self.face_detector.draw_key_landmarks(
+                    frame,
+                    key_landmarks
+                )
+
+                self.status_panel.set_status(
+                    "Face detected"
+                )
+
+            else:
+                self.status_panel.set_status(
+                    "Face not detected"
+                )
 
             image = self.camera_manager.prepare_frame(
                 frame
@@ -210,3 +238,18 @@ class MainWindow(ctk.CTkFrame):
         self.status_panel.set_accessory(
             self.control_panel.selected_category
         )
+
+    def destroy(self):
+        """Release application resources."""
+
+        if self.camera_update_id is not None:
+            self.after_cancel(
+                self.camera_update_id
+            )
+
+            self.camera_update_id = None
+
+        self.camera_manager.release()
+        self.face_detector.close()
+
+        super().destroy()
