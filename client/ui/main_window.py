@@ -9,6 +9,8 @@ from client.ui.status_panel import StatusPanel
 from client.ui.video_preview import VideoPreview
 from client.vision.face_detector import FaceDetector
 from client.api.try_on_api import TryOnApi
+from client.recording.video_recorder import VideoRecorder
+from client.capture.image_capture import ImageCapture
 
 
 class MainWindow(ctk.CTkFrame):
@@ -23,7 +25,10 @@ class MainWindow(ctk.CTkFrame):
         self.accessory_manager = AccessoryManager()
         self.accessory_renderer = AccessoryRenderer()
         self.try_on_api = TryOnApi()
+        self.video_recorder = VideoRecorder()
+        self.image_capture = ImageCapture()
 
+        self.current_frame = None
         self.current_try_on_position = None
 
         self.accessory_manager.load_accessories()
@@ -85,7 +90,9 @@ class MainWindow(ctk.CTkFrame):
             on_start_camera=self._on_start_camera,
             on_stop_camera=self._on_stop_camera,
             on_accessory_selected=self._on_accessory_selected,
-            on_save_try_on=self._save_try_on
+            on_save_try_on=self._save_try_on,
+            on_record=self._toggle_recording,
+            on_capture=self._capture
         )
 
         self.control_panel.grid(
@@ -184,6 +191,24 @@ class MainWindow(ctk.CTkFrame):
                     "Face not detected"
                 )
 
+            self.current_frame = frame.copy()
+
+            if self.video_recorder.is_recording():
+                written = self.video_recorder.write(
+                    frame
+                )
+
+                if not written:
+                    self.video_recorder.stop()
+
+                    self.control_panel.record_button.configure(
+                        text="Record"
+                    )
+
+                    self.status_panel.set_status(
+                        "Recording error"
+                    )
+
             image = self.camera_manager.prepare_frame(
                 frame
             )
@@ -232,6 +257,13 @@ class MainWindow(ctk.CTkFrame):
 
     def _on_stop_camera(self) -> None:
         """Stop the camera."""
+
+        if self.video_recorder.is_recording():
+            self.video_recorder.stop()
+
+            self.control_panel.record_button.configure(
+                text="Record"
+            )
 
         if self.camera_update_id is not None:
             self.after_cancel(
@@ -359,8 +391,100 @@ class MainWindow(ctk.CTkFrame):
                 "Failed to save try-on"
             )
 
+    def _toggle_recording(self) -> None:
+        """Start or stop video recording."""
+
+        if not self.camera_manager.is_opened():
+            self.status_panel.set_status(
+                "Camera is not running"
+            )
+            return
+
+        if self.video_recorder.is_recording():
+            self.video_recorder.stop()
+
+            self.status_panel.set_status(
+                "Recording stopped"
+            )
+
+            self.control_panel.record_button.configure(
+                text="Record"
+            )
+
+            return
+
+        frame_width = (
+            self.camera_manager.get_frame_width()
+        )
+
+        frame_height = (
+            self.camera_manager.get_frame_height()
+        )
+
+        fps = (
+            self.camera_manager.get_fps()
+        )
+
+        if frame_width <= 0 or frame_height <= 0:
+            self.status_panel.set_status(
+                "Invalid camera resolution"
+            )
+            return
+
+        started = self.video_recorder.start(
+            width=frame_width,
+            height=frame_height,
+            fps=fps
+        )
+
+        if not started:
+            self.status_panel.set_status(
+                "Failed to start recording"
+            )
+            return
+
+        self.status_panel.set_status(
+            "Recording..."
+        )
+
+        self.control_panel.record_button.configure(
+            text="Stop Record"
+        )
+
+    def _capture(self) -> None:
+        """Capture the current virtual try-on frame."""
+
+        if not self.camera_manager.is_opened():
+            self.status_panel.set_status(
+                "Camera is not running"
+            )
+            return
+
+        if self.current_frame is None:
+            self.status_panel.set_status(
+                "No frame available"
+            )
+            return
+
+        output_path = self.image_capture.save(
+            self.current_frame
+        )
+
+        if output_path is None:
+            self.status_panel.set_status(
+                "Failed to capture image"
+            )
+            return
+
+        self.status_panel.set_status(
+            f"Image saved: {output_path}"
+        )
+
     def destroy(self):
         """Release application resources."""
+
+        if self.video_recorder.is_recording():
+            self.video_recorder.stop()
 
         if self.camera_update_id is not None:
             self.after_cancel(

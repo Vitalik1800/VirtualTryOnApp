@@ -10,7 +10,9 @@ class ControlPanel(ctk.CTkFrame):
         on_start_camera=None,
         on_stop_camera=None,
         on_accessory_selected=None,
-        on_save_try_on=None
+        on_save_try_on=None,
+        on_record=None,
+        on_capture=None
     ) -> None:
         super().__init__(master)
 
@@ -20,6 +22,8 @@ class ControlPanel(ctk.CTkFrame):
         self.on_stop_camera = on_stop_camera
         self.on_accessory_selected = on_accessory_selected
         self.on_save_try_on = on_save_try_on
+        self.on_record = on_record
+        self.on_capture = on_capture
 
         self._create_widgets()
 
@@ -132,7 +136,8 @@ class ControlPanel(ctk.CTkFrame):
 
         self.capture_button = ctk.CTkButton(
             self,
-            text="Capture"
+            text="Capture",
+            command=self._capture
         )
 
         self.capture_button.pack(
@@ -142,7 +147,8 @@ class ControlPanel(ctk.CTkFrame):
 
         self.record_button = ctk.CTkButton(
             self,
-            text="Record"
+            text="Record",
+            command=self._record
         )
 
         self.record_button.pack(
@@ -169,3 +175,13 @@ class ControlPanel(ctk.CTkFrame):
     def _stop_camera(self) -> None:
         if self.on_stop_camera is not None:
             self.on_stop_camera()
+
+    def _record(self) -> None:
+        if self.on_record is not None:
+            return self.on_record()
+
+    def _capture(self) -> None:
+        """Capture the current camera frame."""
+
+        if self.on_capture is not None:
+            self.on_capture()

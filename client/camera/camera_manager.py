@@ -81,3 +81,42 @@ class CameraManager:
             self.capture is not None
             and self.capture.isOpened()
         )
+
+    def get_frame_width(self) -> int:
+        """Return current camera frame width."""
+
+        if self.capture is None:
+            return 0
+
+        return int(
+            self.capture.get(
+                cv2.CAP_PROP_FRAME_WIDTH
+            )
+        )
+
+    def get_frame_height(self) -> int:
+        """Return current camera frame height."""
+
+        if self.capture is None:
+            return 0
+
+        return int(
+            self.capture.get(
+                cv2.CAP_PROP_FRAME_HEIGHT
+            )
+        )
+
+    def get_fps(self) -> float:
+        """Return current camera FPS."""
+
+        if self.capture is None:
+            return 30.0
+
+        fps = self.capture.get(
+            cv2.CAP_PROP_FPS
+        )
+
+        if fps <= 0:
+            return 30.0
+
+        return fps

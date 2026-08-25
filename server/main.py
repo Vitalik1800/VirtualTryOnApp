@@ -2,8 +2,6 @@ from fastapi import FastAPI
 
 from server.database.base import Base
 from server.database.connection import engine
-from server.models.accessory import Accessory
-from server.models.try_on import TryOn
 from server.api.accessories import router as accessories_router
 from server.api.try_on import router as try_on_router
 

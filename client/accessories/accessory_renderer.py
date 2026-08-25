@@ -8,13 +8,13 @@ class AccessoryRenderer:
     """Renders an accessory on a video frame."""
 
     def render(
-            self,
-            frame: np.ndarray,
-            accessory_image: Image.Image | None,
-            center_x: float,
-            center_y: float,
-            width: float,
-            angle: float = 0.0
+        self,
+        frame: np.ndarray,
+        accessory_image: Image.Image | None,
+        center_x: float,
+        center_y: float,
+        width: float,
+        angle: float = 0.0
     ) -> np.ndarray:
         """Render an accessory on a video frame."""
 
