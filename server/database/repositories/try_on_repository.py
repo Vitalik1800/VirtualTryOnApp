@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from client.database.models.try_on import TryOn
+from server.models.try_on import TryOn
 
 
 class TryOnRepository:

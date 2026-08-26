@@ -33,19 +33,10 @@ class MainWindow(ctk.CTkFrame):
 
         self.accessory_manager.load_accessories()
 
-        self.accessory_manager.load_database_ids()
-
-        print(
-            "Loaded accessories:",
-            len(self.accessory_manager.accessories)
-        )
-
-        print(
-            "Selected accessory:",
-            self.accessory_manager
-            .get_selected_accessory()
-            .name
-        )
+        try:
+            self.accessory_manager.load_database_ids()
+        except Exception as error:
+            print(f"Failed to load database IDs: {error}")
 
         self.camera_update_id = None
         self.camera_read_errors = 0
